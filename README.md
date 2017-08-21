@@ -1,22 +1,11 @@
 # 关于这个Jekyll模板主题 ⚽⚽⚽
 
-## 预览
-
-### 首页
-
-![首页](https://github.com/maoxiaoke/maoxiaoke.github.io/blob/master/styles/images/blog/blog.png?raw=true)
 
 + 首页: 博客首页
 + 博文分类: 按照categories对文章进行分类
 + 标签分类: 按照tags对文章进行分类
-+ 外域链接: 存放一些想要其他网站的链接
-+ DEMO: 存放个人项目
-+ 打赏我: 提供donation
-+ 关于我: 个人CV
++ 关于我: 个人简介
 
-### 文章页
-
-![文章页](https://github.com/maoxiaoke/maoxiaoke.github.io/blob/master/styles/images/blog/page.png?raw=true)
 
 ---
 
@@ -90,7 +79,7 @@
 文件命名示例如下:
 
 ```
-2017-03-23-More-of-prototype.md
+2017-08-21-More-of-prototype.md
 ```
 
 文章首部字段为:
@@ -98,10 +87,10 @@
 ```markdown
 ---
 layout: post
-title: "再谈原型和继承"
-date: 2017-03-23 09:00:00 +0800
-categories: 研究生涯
-tag: JavaScript
+title: "Linux 启动简介"
+date: 2017-08-21 09:00:00 +0800
+categories: translated
+tag: Linux
 ---
 * content
 {:toc}
@@ -119,6 +108,8 @@ tag: JavaScript
 
 ```bash
 $ jekyll s
+or
+$ bundle exec jekyll serve
 ```
 
 会开启jekyll服务器，监听在`http://127.0.0.1:4000/`，使用浏览器访问呢。
@@ -131,73 +122,20 @@ $ jekyll build
 
 > 备注: 草稿区的内容不会显示，如果想要对草稿去内容进行查看，可参考[开启草稿](http://xiaokedada.com/2017/05/09/Jekyll-second/#jekyll的一些使用技巧)
 
-### 发布
-
-发布请保留主题来源。
-
-```text
-Copyright © 2017 M/J. All rights reserved.
-```
 
 ---
 
 ## Update Log
 
-### 2017.07.16
-
-- [-] 删除网易云跟帖
-- [+] 将网易云跟帖更改为gitment
-- [+] 添加一个新模块: TalkToMe
-
-### 2017.06.17
-
-- [^] 改变文章字体
-- [+] 增加不蒜子
-- [^] 将多说更改为网易云跟帖
-- [+] 添加搜索功能
-- [^] 代码高亮改为rouge
-
-
-### 2017.04.20
+### 2017.08.21
 
 - [+] First commit
-- [+] 添加首页Canvas效果
-- [+] 添加日历控件
-- [+] 添加云标签控件
-- [+] 添加社会化评论多说
-- [+] 大量优化
-- [+] 添加favicon.ico
+- [+] modify README
+
 
 ---
 
-## 打赏
 
-<p align="center">所以，如果你喜欢这个博客，有些许收获。就请支持我。</p>
-
-### 赞助方式1： 支付宝付款
-
-您可以选择手机支付宝扫一扫
-
-<img src="https://github.com/maoxiaoke/maoxiaoke.github.io/blob/master/styles/images/zhifubao.jpg?raw=true" alt="支付宝二维码付款给小可嗒嗒" />
-
-### 赞助方式2： 微信扫一扫
-
-您可以选择手机微信扫一扫
-
-![微信二维码付款给小可嗒嗒](https://github.com/maoxiaoke/maoxiaoke.github.io/blob/master/styles/images/wechat.jpg?raw=true)
-
-### 赞助名单
-
-+ 2017-02-21 09:52:10 收到微信用户xxx的`￥1.00`
-+ 2017-02-21 15:59:00 收到支付宝用户241***@qq.com的`￥6.66`
-+ 2017-02-21 19:53:37 收到微信用户xxx的`￥6.66`
-+ 2017-02-21 22:33:33 收到微信用户xxx`￥6.66`
-+ 2017-02-22 08:36:00 收到支付宝用户116***@qq.com的`￥1.66`
-+ 2017-07-24 22:05:00 收到支付宝用户118***10的`￥6.66`
-
-手动笔芯
-
----
 
 ## License
 
