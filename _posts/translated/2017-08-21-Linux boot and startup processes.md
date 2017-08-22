@@ -5,7 +5,7 @@ date: 2017-08-21 08:21:26 +0800
 categories: translated
 tag: Linux
 ---
-*content  
+* content  
 {:toc}
 
 ---
