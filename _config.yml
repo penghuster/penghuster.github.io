@@ -1,0 +1,32 @@
+# Site settings
+name: blogme
+email: penghuster@163.com
+author: penghuster
+url: https://penghuster.github.io/
+resume_site: https://penghuster.github.io/me/
+github: https://github.com/penghuster
+baseurl: ""  #根目录
+description: 一切违心之劳，皆为奴为。
+motto: 一切违心之劳，皆为奴为。
+#motto: 如果生活欺骗了你，不要悲伤，不要哭泣。
+banner: 在想象中将自己的邪恶指数放大十倍, Just try it.
+#permalink: /:categories/:year/:month/:day/:title/
+permalink: /:year/:month/:day/:title/
+excerpt_separator:  '<!-- more -->' #文章摘要
+paginate: 8
+paginate_path: "page:num"
+plugins:
+  - jekyll-sitemap
+  - jekyll-gist
+  - jekyll-feed
+  - jekyll-paginate
+#[jekyll-paginate]
+exclude: ['README.md', 'Gemfile.lock', 'Gemfile', 'Rakefile']
+github_username: penghuster
+highlighter: rouge
+markdown: kramdown
+FB:
+  comments :
+    provider : disqus
+    disqus :
+    short_name : penghuster
