@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" >
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+	<title>IoT边缘计算框架的新进展</title>
+	<meta name="description" content="penghuster的个人博客、C/C++、物联网、python、Linux、jekyll、git">
+	<meta name="keywords" content="个人博客、技术博客、github博客、C/C++、Linux、软件工程师" />
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<meta name="msapplication-tap-highlight" content="no">
+	<meta name="author" contect="penghuster, penghuter@163.com">
+	<meta name="robots" content="index,follow">
+	<link rel="shortcut icon" href="/styles/images/favicon.png">
+	<link rel="icon" href="/styles/images/favicon.png">
+	<link rel="stylesheet" href="/styles/css/index.css">
+	<link rel="stylesheet" href="/styles/css/fontawesome/css/font-awesome.min.css">
+	<link rel="canonical" href="http://localhost:4000">
+	<!--[if lte IE 9]>
+    	<script src="http://apps.bdimg.com/libs/html5shiv/3.7/html5shiv.min.js"></script>
+  	<![endif]-->
+	<!--[if lt IE 9]>
+    	<script>window.location.href='/upgrade-your-browser.html';</script>
+    <![endif]-->
+	<script>
+		var _hmt = _hmt || [];
+		(function() {
+  			var hm = document.createElement("script");
+  			hm.src = "https://hm.baidu.com/hm.js?40ab350f7c60a488b8e8093960c0faf2";
+  			var s = document.getElementsByTagName("script")[0];
+  			s.parentNode.insertBefore(hm, s);
+		})();
+	</script>
+</head>
+
+  <body class="index">
+    <header class="navbar navbar-inverse navbar-fixed-top docs-nav" role="banner">
+  <div class="container">
+    <div class="navbar-header" >
+      <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a href="/" class="navbar-brand"  >
+        <img src="/styles/images/logo.png" style="max-width:100px;margin-top:-20px;" alt="penghuster's blog." >
+      </a>
+    </div>
+    <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+      <ul class="nav navbar-nav">
+        <li></li>
+        <li>
+          <a href="/">首页</a>
+        </li>
+        <li>
+          <a href="/categories/">博文分类</a>
+        </li>
+        <li>
+          <a href="/tag">标签目录</a>
+        </li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <!--
+        <li><a rel="nofollow" href="/reference">外域链接</a></li>
+        <li><a href="/effects">DEMO</a></li>
+        <li><a href="/donate">打赏我</a></li>
+      -->
+        <li><a rel="nofollow" href="/me">关于我</a></li>
+      <!--
+        <li><a rel="nofollow" href="/talktome">TalkToMe</a></li>
+
+
+        <li><a rel="nofollow" target="_blank" href="https://penghuster.github.io/me/">关于我</a></li>
+        -->
+      </ul>
+    </nav>
+  </div>
+</header>
+
+    <div class="docs-header pa" id="content">
+    <canvas id="mycanvas">你的浏览器不支持canvas</canvas>
+    <div class="container" >
+  	
+        <!--
+		    <h1>IoT边缘计算框架的新进展</h1>
+		    <p>Post on Aug 21, 2017 by <a href="/about">penghuster</a></p>
+		-->
+        <h1>一切违心之劳，皆为奴为。</h1>
+    
+  </div>
+</div>
+    
+      
+<div class="banner">
+  <div class="container lh30">
+  	
+    	<a href="/categories/#translated-ref">translated</a>	/
+    	<a href="/tag/#IoT-ref">IoT</a>
+    
+      <div id="search-container" class="pull-right">
+          <input type="text" id="search-input" placeholder=" 试试直接搜索吧...">
+          <label class="searchIcon glyphicon glyphicon-search" for="search-input"></label>
+          <ul id="results-container"></ul>
+      </div>
+  </div>
+</div>
+
+    
+    <div class="container docs-container">
+  <div class="row">
+    <div class="col-md-3">
+      <div class="sidebar hidden-print" role="complementary">
+        <div id="navigation">
+  <h1>目录</h1>
+  <ul class="nav sidenav">
+<!--
+    
+      
+      
+      
+      
+
+      
+        <li><a href="#year_2017">2017</a>
+          <ul class="nav">
+            <li><a href="#month_2017_August">August</a></li>
+      
+
+      
+        
+          
+        
+      
+    
+      
+      
+      
+      
+
+      
+
+      
+        
+          
+              <li><a href="#month_2017_March">March</a></li>
+          
+        
+      
+    
+      
+      
+      
+      
+
+      
+
+      
+            </ul>
+          </li>
+      
+    
+-->
+  </ul>
+</div>
+
+      </div>
+    </div>
+    <div class="col-md-9" role="main">
+      <div class="panel docs-content">
+        <div class="wrapper">
+            <header class="post-header">
+              <h1 class="post-title">IoT边缘计算框架的新进展</h1>
+              <!--
+                <p class="post-meta">Aug 21, 2017</p>
+              -->
+              <div class="meta">Date： <span class="postdate">Aug 21, 2017</span> Author： <a target="_blank" href="http://localhost:4000">penghuster</a></div>
+              <br />
+              <blockquote><p>本文章属原创文章，欢迎转载，但请注明出处。</p></blockquote>
+            </header>
+            <article class="post-content">
+              <ul id="markdown-toc">
+  <li><a href="#传感器集成的简化" id="markdown-toc-传感器集成的简化">传感器集成的简化</a></li>
+  <li><a href="#边缘分析能力的构建" id="markdown-toc-边缘分析能力的构建">边缘分析能力的构建</a></li>
+</ul>
+
+<p>文中主要简述了 EdgeX Foundry 的来源和现状，简要描述了 EdgeX Foundry 的功能及其作用。</p>
+
+<!-- more -->
+
+<p><img src="http://i.imgur.com/sZvQOVz.png" alt="" /></p>
+
+<p>开源项目 EdgeX Foundry 旨在开发一个标准化的互操作物联网边缘计算框架.<a href="https://www.linux.com/licenses/category/used-permission">使用权限获取</a>.</p>
+
+<p>在4月, Linux 基金组织<a href="http://linuxgizmos.com/open-source-group-focuses-on-industrial-iot-gateway-middleware/">启动</a>了开发一个标准化互操作物联网边缘计算框架的开源项目<a href="https://www.edgexfoundry.org/">EdgeX Foundry</a>. 就在最近, EdgeX Foundry 又<a href="https://www.edgexfoundry.org/announcement/2017/07/17/edgex-foundry-builds-momentum-for-a-iot-interoperability-and-a-unified-marketplace-with-eight-new-members/">宣布</a>新增 8 个成员,  其总成员达到 58.</p>
+
+<p>这些新成员是 Absolute, IoT Impact LABS, inwinStack, Parallel Machines, Queen’s University Belfast, RIOT, Toshiba Digital Solutions Corporation, 和 Tulip Interfaces. 其原有成员包括 AMD, Analog Devices, Canonical/Ubuntu, Cloud Foundry, Dell, Linaro, Mocana, NetFoundry, Opto 22, RFMicron 和 VMWare 等其他公司或组织.</p>
+
+<p>戴尔贡献出其基于 Apache2.0 协议的<a href="https://medium.com/@gigastacey/dell-plans-an-open-source-iot-stack-3dde43f24feb">FUSE</a>框架源码作为 EdgeX Foundry 项目的种子，其中包括十几个微服务和超过 12.5 万行代码. Linux 基金会和 Dell 将合并 FUSE 和 AllJoyn-compliant IoTX 项目, 后者是由现有 EdgeX Foundry 成员 Two Bulls 和 Beechwood 发起的与 FUSE 相似的一个项目. 待合并完成 Linux 基金组织将正式宣布启动 EdgeX Foundry 项目.</p>
+
+<p>EdgeX Foundry 将创造一个互操作性的, 即插即用的物联网边缘计算组件生态系统. 开源 EdgeX 栈将协调多样的传感器网络与后台数据处理云平台间的消息协议. 该框架旨在充分挖掘横跨边缘计算, 安全, 系统管理和微服务等模块间的通用代码.</p>
+
+<p>对于项目成员及其客户来说, 其关注焦点在于借助于 IoT 网关和智能边缘设备,预认证的软件可方便集成的可能性. 在 Linux.com 的一次采访中, <a href="https://iotimpactlabs.com/">IoT Impact LABS</a> 的首席工程师, Dan Mahoney 说:”现实中, EdgeX Foundry 降低我们在部署囊括多供应商解决方案时所面对的挑战.”</p>
+
+<p>Linux 基金组织,在将 AllSeen Alliance 的 AllJoyn 项目合并到 <a href="https://www.linux.com/news/how-iotivity-and-alljoyn-could-combine">IoTivity</a> 的情况下, 为什么Linux基金组织发起了另外一个物联网标准化项目 (EdgeX Foundry)? 原因之一, EdgeX Foundry 不同于 IoTivity, IoTivity 主要解决工业物联网问题, 而 EdgeX Foundry 旨在一站解决消费级和工业级物联网全部的问题. 更具体来说, EdgeX Foundry 旨在成为网关和智能终端的通用中间件. EdgeX Foundry 与 IoTivity 的另一个不同在于, 前者希望借助预连接的终端塑造一种新产品, 后者更多解决现存产品之间的互操作性.</p>
+
+<p>Linux 基金会 IoT 高级总监 Philip DesAutels 说:”IoTivity 提供实现设备之间无缝连接的协议, 而 EdgeX Foundry 提供了一个边缘计算框架. EdgeX Foundry 能够兼容如 IoTivity, BacNet, EtherCat 等任何协议设备, 从而实现集成多协议通信系统的通用边缘计算框架, 该项目的目标是为构建互操作组件的生态系统的过程中, 降低不确定性, 缩短市场化时间, 更好地产生规模效应.”</p>
+
+<p>上个月, 由 <a href="https://openconnectivity.org/developer/specifications/international-standards">Open Connectivity Foundation</a> (OCF) 和 Linux 基金组织共同发起的 IoTivity项目发布了 <a href="https://wiki.iotivity.org/release_note_1.3.0">IoTivity 1.3</a>, 该版本增加 了与其曾经的对手 AllJoyn spec 的纽带, 也增加了对于 OCF 的 UPnP 设备的接口. 预计在 <a href="https://www.linux.com/news/iotivity-20-whats-store">IoTivity 2.0</a> 中, IoTivity 和 AllJoyn 将会更进一步深入集成.</p>
+
+<p>DesAutels 告诉 linux.com, IoTivity 和 EdgeX 是高度互补的, 其原因是 EdgeX 项目和IoTivity 项目有好几个共同成员, 如此更强化了 IoTivity 和 EdgeX 的互补关系.</p>
+
+<p>尽管 IoTivity 和 EdgeX 都宣称是跨平台,包括 CPU 架构和 OS, 但是二者还是存在一定区别.  IoTivity 最初是基于 Linux 平台设计, 兼容 Ubuntu, Tizen 和 Android 等 Linux 系列 OS, 后来逐步扩展到 Windows 和 IOS 操作系统. 与之对应的 EdgeX 设计之初就是基于跨平台的理念, 其完美兼容于各种 CPU 架构, 以及 Linux, Windows 和 Mac OS 等操作系统. 未来还将兼容于实时操作系统(RTOSes).</p>
+
+<p>EdgeX 的新成员 <a href="https://riot-os.org/">RIOT</a> 提供了一个开源项目 RIOT RTOS. RIOT 的主要维护者 Thomas Eichinger 在一次重要报告时说:”由于 RIOT 初衷就是致力于解决 linux 不太适应的问题, 故对于 RIOT 社区来说,参加和支持类似于 EdgeX Foundry 等与 Linux 互补性社区的积极性是自然而然的.”</p>
+
+<h2 id="传感器集成的简化">传感器集成的简化</h2>
+<p>IoT Impact LABS (也叫aka impact LABS 或直接称为 LABS) 是另一个 EdgeX 新成员. 该公司推出了一个独特的业务, 旨在帮助中小企业度过物联网解决方案的试用阶段. 该公司的大部分客户, 其中包括几个 EdgeX Foundry 的项目成员, 是致力于建设智慧城市, 基础设施再利用, 提高食品安全, 以及解决会社面临的自然资源缺乏的挑战.</p>
+
+<p>Dan Mahoney 说:”在 LABS 我们花费了很多时间来调和试点客户的解决方案之间的差异性. EdgeX Foundry 可以最小化部署边缘软件系统的工作量,从而使我们能够更快更好地部署高质量的解决方案.”</p>
+
+<p>该框架在涉及多个供应商, 多种类型传感器的场景尤其凸显优势. “Edgex Foundry 将为我们提供快速构建网关的能力, 以及快速部署传感器的能力.” Mahoney 补充说到. 传感器制造商将借助 EdgeX SDK 烧写应用层协议驱动到边缘设备, 该协议能够兼容多供应商和解决方案.</p>
+
+<h2 id="边缘分析能力的构建">边缘分析能力的构建</h2>
+<p>当我们问到, Mahoney 的公司想要见到 EdgeX Foundry 怎样的发展时, 他说:”我们喜见乐闻的一个目标是有更多有效的工业协议作为设备服务出现, 一个更清晰的边缘计算实现路径.”</p>
+
+<p>在工业物联网和消费级物联网中边缘计算都呈现增长趋势. 在后者, 我们已经看到如 Alexa 的智能声控以及录像分析等几个智能家居系统集成了边缘计算分析技术. 这减轻了云服务平台的计算负荷, 但同时也带来了安全, 隐私, 以及由于政策和供应商中断引起的服务中断问题.</p>
+
+<p>对于工业物联网网关, 隐私问题成为首要的问题. 因此, 在物联网网关方面出现了一些类似于云服务功能的扩展. 其中一个解决方案是, 为了安全将一些云服务上的安全保障应用借助容器如 <a href="https://www.linux.com/news/future-iot-containers-aim-solve-security-crisis">RIOS 与 Ubuntu 内核快照机制</a>等方式集成到嵌入式设备. 另一种方案是, 开发 IoT 系统迁移云功能到边缘. 上个月, Amazon 为基于 linux 的网关发布了实现 <a href="http://linuxgizmos.com/amazon-releases-aws-greengrass-for-local-iot-processing-on-linux-devices/">AWS Greengrass</a> 物联网协议栈的 AWS lambda. 该软件能够使计算, 消息路由, 数据收集和同步能力在边缘设备上完成,如物联网网关.</p>
+
+<p>分析能力是 EdgeX Foundry 的一个关键功能要点. 发起成员 Cloud Foundry 是旨在集成其主要的工业应用平台到边缘设备. 另一个新成员 <a href="https://www.parallelmachines.com/">Parallel Machines</a> 计划利用EdgeX将AI带到边缘设备.</p>
+
+<p>EdgeX Foundry 仍然在项目早期, 软件仍然在 α 阶段, 其成员在上个月才刚刚进行了第一次全体成员大会. 同时项目已经为新开发者准备了一些初始训练课程, 另外从<a href="https://wiki.edgexfoundry.org/">这里</a>也能获取更多的信息.</p>
+
+<p>原文连接: <a href="https://www.linux.com/blog/2017/7/iot-framework-edge-computing-gains-ground">https://www.linux.com/blog/2017/7/iot-framework-edge-computing-gains-ground</a></p>
+
+<p>作者： <a href="https://www.linux.com/users/ericstephenbrown">ERIC BROWN</a> 译者：penghuster 校对：校对者ID</p>
+
+<p>本文由 <a href="https://github.com/LCTT/TranslateProject">LCTT</a> 原创编译，<a href="https://linux.cn/">Linux中国</a> 荣誉推出</p>
+
+            </article>
+          <hr>
+          <blockquote><p>对于本文内容有问题或建议的小伙伴，欢迎 <a href="mailto:penghuster@163.com" target="_blank">mi</a> 我。<br />后期我也会添加个评论功能玩玩哦.</p></blockquote>
+            <!--
+          <div class="text-center">
+
+            <a href="/donate/" target="_blank" style="text-decoration: none"><button type="button" class="btn btn-danger"><span class="glyphicon glyphicon-usd" aria-hidden="true"></span> 您的支持是将是我写作最大的动力!</button></a>
+
+          <a href="mailto:penghuster@163.com" target="_blank">penghuster</a>
+          </div>
+        -->
+        </div>
+      </div>
+      <!--
+      <div class="panel docs-content">
+        <article class="post-content">
+          <div class="wrapper">
+            
+
+
+  <div id="disqus_thread"></div>
+<script>
+
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+var disqus_config = function () {
+this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
+
+          </div>
+        </article>
+      </div>
+    -->
+    </div>
+  </div>
+</div>
+
+    <footer class="footer" role="contentinfo">
+	<!--不蒜子pv/uv统计-->
+	<div class="post-meta">
+            <p>Total <span id="busuanzi_value_site_pv"></span> views，您是本站的第<span id="busuanzi_value_site_uv"></span>个小伙伴，<span id="busuanzi_value_page_pv"></span> Hits</p><br/>
+    </div>
+	<div class="container">
+		<p class="copyright">Copyright &copy; 2018 <a href="https://penghuster.github.io/me/" target="_blank"><code>penghuster</code></a>. All rights reserved. </p>
+		<p>Powered by <a href="http://jekyllrb.com" target="_blank">Jekyll</a>， Data by <a href="https://tongji.baidu.com/web/23811489/overview/index" target="_blank">Bai Du</a>.</p>
+	</div>
+	<ul id="gotop"><li><span>TOP</span></li></ul>
+</footer>
+<script src="http://apps.bdimg.com/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://apps.bdimg.com/libs/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<script src="/styles/js/function.min.js"></script>
+<script src="/styles/js/lessismore.js"></script>
+<script src="/styles/js/application.min.js"></script>
+  </body>
+</html>

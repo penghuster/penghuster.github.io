@@ -1,0 +1,1176 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.5.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-05-04T16:20:49+08:00</updated><id>http://localhost:4000/</id><title type="html">blogme</title><subtitle>一切违心之劳，皆为奴为。</subtitle><author><name>penghuster</name></author><entry><title type="html">Linux开机引导和启动过程简介</title><link href="http://localhost:4000/2017/08/21/Linux-boot-and-startup-processes/" rel="alternate" type="text/html" title="Linux开机引导和启动过程简介" /><published>2017-08-21T08:21:26+08:00</published><updated>2017-08-21T08:21:26+08:00</updated><id>http://localhost:4000/2017/08/21/Linux%20boot%20and%20startup%20processes</id><content type="html" xml:base="http://localhost:4000/2017/08/21/Linux-boot-and-startup-processes/">&lt;ul id=&quot;markdown-toc&quot;&gt;
+  &lt;li&gt;&lt;a href=&quot;#引导过程&quot; id=&quot;markdown-toc-引导过程&quot;&gt;引导过程&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#bios上电自检&quot; id=&quot;markdown-toc-bios上电自检&quot;&gt;BIOS上电自检&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#grub2&quot; id=&quot;markdown-toc-grub2&quot;&gt;GRUB2&lt;/a&gt;        &lt;ul&gt;
+          &lt;li&gt;&lt;a href=&quot;#阶段-1&quot; id=&quot;markdown-toc-阶段-1&quot;&gt;阶段 1&lt;/a&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;a href=&quot;#阶段-15&quot; id=&quot;markdown-toc-阶段-15&quot;&gt;阶段 1.5&lt;/a&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;a href=&quot;#阶段-2&quot; id=&quot;markdown-toc-阶段-2&quot;&gt;阶段 2&lt;/a&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#内核&quot; id=&quot;markdown-toc-内核&quot;&gt;内核&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#启动过程&quot; id=&quot;markdown-toc-启动过程&quot;&gt;启动过程&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#systemd&quot; id=&quot;markdown-toc-systemd&quot;&gt;systemd&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#问题讨论&quot; id=&quot;markdown-toc-问题讨论&quot;&gt;问题讨论&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#结论&quot; id=&quot;markdown-toc-结论&quot;&gt;结论&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#附加资源&quot; id=&quot;markdown-toc-附加资源&quot;&gt;附加资源&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;你是否曾经对操作系统为何能够执行应用程序而感到疑惑？那么本文将为你揭开操作系统引导与启动的面纱。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;理解操作系统开机引导和启动过程对于配置操作系统和解决相关启动问题是至关重要的。该文章陈述了 GRUB2 引导装载程序开机引导装载内核的过程和 systemd 执行开机启动操作系统的过程。&lt;/p&gt;
+
+&lt;p&gt;事实上，操作系统的启动分为两个阶段：引导和启动。引导阶段开始于打开电源开关，结束于内核初始化完成和 systemd 进程成功拉起。启动阶段接管了剩余工作，直到操作系统可用。&lt;/p&gt;
+
+&lt;p&gt;总体来说，Linux 的开机引导和启动过程是相当容易理解，下文将分章节对于不同步骤进行详细说明。&lt;/p&gt;
+
+&lt;p&gt;其他Linux参考资源&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://opensource.com/resources/what-is-linux?src=linux_resource_menu&quot;&gt;What is Linux?&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://opensource.com/resources/what-are-linux-containers?src=linux_resource_menu&quot;&gt;What are Linux containers?&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://opensource.com/article/16/11/managing-devices-linux?src=linux_resource_menu&quot;&gt;Managing devices in Linux&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://developers.redhat.com/promotions/linux-cheatsheet/?intcmp=7016000000127cYAAQ&quot;&gt;Download Now: Linux commands cheat sheet&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://opensource.com/tags/linux?src=linux_resource_menu&quot;&gt;Our latest Linux articles&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;BIOS POST&lt;/li&gt;
+  &lt;li&gt;Boot loader (GRUB2)&lt;/li&gt;
+  &lt;li&gt;Kernel initialization&lt;/li&gt;
+  &lt;li&gt;Start systemd, the parent of all processes.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;注意，本文以 GRUB2 和 systemd 为载体讲述操作系统的开机引导和启动过程，是因为两者是目前主流的 linux 发行版本所使用的引导加载内核和初始化系统的软件。当然另外一些过去使用的相关软件仍然在一些 Linux 发行版本中使用。&lt;/p&gt;
+
+&lt;!-- more --&gt;
+
+&lt;h2 id=&quot;引导过程&quot;&gt;引导过程&lt;/h2&gt;
+&lt;p&gt;发起引导过程的方法有两种。首先，如果系统处于关机状态，那么打开电源按钮将开启系统引导过程。其次，如果操作系统已经运行在一个本地用户（该用户可是 root 或其他非特权用户），那么用户可以借助图形界面或命令行界面通过编程方式发起一个重启操作，从而触发系统引导过程。重启包括了一个关机和启动操作。&lt;/p&gt;
+
+&lt;h3 id=&quot;bios上电自检&quot;&gt;BIOS上电自检&lt;/h3&gt;
+&lt;p&gt;上电自检过程中其实 Linux 没有什么也没做，上电自检主要由硬件完成，这对于所有操作系统都一样。当电脑接通电源，电脑开始执行 BIOS（基本输入输出系统）的 POST（上电自检）过程。&lt;/p&gt;
+
+&lt;p&gt;在 1981 年，IBM设计的第一台个人电脑中，BIOS 被设计为初始烧录于硬件组件中。POST作为 BIOS 的组成部分，用于检验电脑硬件基本功能是否正常。如果 POST 失败，那么这个电脑就不能使用，引导过程也将就此中断。&lt;/p&gt;
+
+&lt;p&gt;BIOS 上电自检确认硬件的基本功能正常，然后产生一个 BIOS 中断，INT 13H，该中断指向任何可启动设备的启动记录。如果在该启动扇区中发现一个有效的启动记录，那么BIOS将加载启动记录中的数据到内存中。控制权也将从BIOS转移到此段代码。&lt;/p&gt;
+
+&lt;p&gt;设备启动记录中代码加载是引导加载器真正的第一阶段。大多数 Linux 发行版本使用的引导加载器一共有 3 种，GRUB，GRUB2 和 LILO。GRUB2 是最新出现的，也是相对于其他老的选项使用最广泛的。&lt;/p&gt;
+
+&lt;h3 id=&quot;grub2&quot;&gt;GRUB2&lt;/h3&gt;
+&lt;p&gt;GRUB2 全称是 Grand Unified BootLoader，Version 2。它是目前流行的大部分 Linux 发行版本的通用启动加载器。GRUB2 是一个用于寻找操作系统内核并加载其到内存的智能程序。由于 GRUB 比 GRUB2 易于书写和阅读，在下文中，除特殊指明以外，GRUB 将代指 GRUB2。&lt;/p&gt;
+
+&lt;p&gt;GRUB 被设计为兼容多种操作系统引导规范，GRUB 能够用来引导不同版本的 Linux 和其他的开源操作系统；它还能链式加载操作系统的专用引导记录。&lt;/p&gt;
+
+&lt;p&gt;GRUB 允许用户选择任何给定几个 Linux 发行版本内核开机引导操作系统。这个特性使得操作系统，在因为关键软件不兼容或其他某些原因升级失败时，具备恢复先前版本的能力。GRUB 能够通过文件 /boot/grub/grub.conf 进行配置。&lt;/p&gt;
+
+&lt;p&gt;GRUB1 现在已经逐步被弃用，它已经被更新的版本 GRUB2 所替换。 GRUB2 是在 GRUB1 的基础上重写完成。Red Hat 基础发行版（Fedora 15 和 CentOS/RHEL 7）均升级到 GRUB2。GRUB2 提供了与 GRUB1 同样的引导功能，但是 GRUB2 又像一个基于命令行的 Pre-OS 环境主框架，使得在预引导阶段配置更为方便和易操作。GRUB2 通过 /boot/grub2/grub.cfg 进行配置。&lt;/p&gt;
+
+&lt;p&gt;两个 GRUB 的最主要作用都是完成内核加载并启动内核。两个版本的 GRUB 的基本工作方式一致，其主要阶段也保持相同，都可分为3个阶段。在本文将以 GRUB2 为例进行讨论其工作过程。GRUB 或 GRUB2 的配置，以及 GRUB2 的使用命令均超过本文范围，不会在文中进行介绍。&lt;/p&gt;
+
+&lt;h4 id=&quot;阶段-1&quot;&gt;阶段 1&lt;/h4&gt;
+&lt;p&gt;如上文 POST（上电自检）阶段提到，在 POST 阶段结束时，BIOS 将查找在启动设备中查找引导记录，其通常位于 MBR（主引导记录），它加载该引导记录中代码进入内存，并开始执行此代码。引导代码必须存储于引导记录，由于一个记录的大小为 512 字节且引导记录还必须存储该所在设备的分区信息，导致了引导代码必须非常小。 在实际中，引导代码在住引导扇区中占用的空间大小为 446 字节，该 446 字节的文件通常被叫做引导镜像（boot.img），其中不包含设备的分区信息，分区是一般单独添加到引导记录中。&lt;/p&gt;
+
+&lt;p&gt;由于引导记录的大小限制，它不可能非常智能，且不能理解文件系统结构。因此阶段 1 的唯一功能就是加载阶段 1.5 的所需的代码。为了完成此任务，阶段 1.5 的代码必须位于引导记录与设备第一个分区之间的位置。在加载阶段 1.5 代码进入内存后，控制权将有阶段 1 转移到阶段 1.5。&lt;/p&gt;
+
+&lt;h4 id=&quot;阶段-15&quot;&gt;阶段 1.5&lt;/h4&gt;
+&lt;p&gt;如上所述，阶段 1.5 的代码必须位于引导记录与设备第一个分区之间的位置。该空间由于历史技术原因而空闲。第一个分区的开始位置在扇区 63 和 MBR（记录 0）之间遗留下 62 个 512 字节的记录（共 31744 字节），该区域用于存储阶段 2 的代码镜像 core.img 文件。该文件大小为 25389 字节，故此区域有足够大小的空间用来存储 core.img。&lt;/p&gt;
+
+&lt;p&gt;因为有更大的存储空间用于阶段 1.5，且该空间足够容纳一个通用的文件系统，如标准的EXT，其他的 linux 文件系统，FAT 和 NTFS 等。core.img 必定比 boot.img 更复杂且更强大。这意味着 GRUB2 的阶段 2 能够运行于一个标准的 EXT 文件系统，但是不能运行于逻辑卷上。故阶段 2 的文件可以存放于 /boot 根目录之下，特殊地文件如 /boot/grub2 等都存放于该目录下。&lt;/p&gt;
+
+&lt;p&gt;注意 /boot 目录必须是一个 GRUB 所支持的文件系统（并不是所有的文件系统均可）。阶段 1.5 的功能是启动阶段 2 所需要的文件系统，并将阶段 2 需要的文件存储到 /boot 根目录下，且加载相关的驱动程序。&lt;/p&gt;
+
+&lt;h4 id=&quot;阶段-2&quot;&gt;阶段 2&lt;/h4&gt;
+&lt;p&gt;GRUB 阶段 2 所有的文件都已存放于 /boot/grub2 目录及其几个子目录之下。该阶段没有一个类似于阶段 1 与阶段 1.5 的镜像文件。相应地，该阶段主要需要从 /boot/grub2/i386-pc 目录下加载一些内核运行时模块。&lt;/p&gt;
+
+&lt;p&gt;GRUB 阶段 2的主要功能是定位和加载 Linux 内核到内存中，并转移控制权到内核。内核的相关文件位于 /boot 目录下，这些内核文件可以通过其文件名进行识别，其文件名均带有前缀 vmlinuz。你可以使用 ll 命令查看操作系统中当前已经安装的内核文件。&lt;/p&gt;
+
+&lt;p&gt;GRUB2 根 GRUB1 类似，支持选择从某个内核文件引导启动。Red Hat 包管理器（DNF）支持保持多个内核版本，以防最新版本内核发生问题而无法启动时，恢复老版本系统。GRUB 在安装系统时提供一个预引导菜单，其中包括问题诊断菜单（recuse）以及恢复菜单（如果配置已经设置恢复镜像）。&lt;/p&gt;
+
+&lt;p&gt;阶段 2 加载选择的内核到内存中，并转移控制权到内核代码。&lt;/p&gt;
+
+&lt;h3 id=&quot;内核&quot;&gt;内核&lt;/h3&gt;
+&lt;p&gt;内核文件都是以一种自解压的压缩格式存储，它与一个初始化的内存映像和存储设备映射表都存储于 /boot 目录之下。&lt;/p&gt;
+
+&lt;p&gt;在被选择内核加载到内存中，并开始执行后，在其进行任何工作之前，内核文件首先必须从压缩格式自解压。一旦内核自解压完成，则启动systemd进程(该进程是替换老的 systemV 系统的 init 进程)，并转移控制权到 systemd。&lt;/p&gt;
+
+&lt;p&gt;在引导过程的结束时，Linux 内核和 systemd 处于运行状态，但是由于没有其他任何程序在执行，故其不能执行任何有关用户的功能性任务。&lt;/p&gt;
+
+&lt;h2 id=&quot;启动过程&quot;&gt;启动过程&lt;/h2&gt;
+&lt;p&gt;启动过程紧随引导过程之后，启动过程使 Linux 系统进入可操作状态，并能够执行用户功能性任务。具体来说，就是系统启动相关的系统守护进程。&lt;/p&gt;
+
+&lt;h3 id=&quot;systemd&quot;&gt;systemd&lt;/h3&gt;
+&lt;p&gt;systemd 是所有进程的父进程。它负责拉起宿主操作系统到一个用户可操作状态（可以执行功能任务）。systemd 相对于 init 进程扩展了一些管理该宿主进程各个方面的新功能，包括文件系统挂载，以及开启和管理系统服务等具体业务功能，但是 systemd 的任何与系统启动过程无关的功能均不在此文的讨论范围。&lt;/p&gt;
+
+&lt;p&gt;首先，systemd 挂载文件系统是在 &lt;strong&gt;/etc/fstab&lt;/strong&gt; 配置，包括内存交换分区和设备分区。据此，systemd 必须能够访问位于 /etc 目录下的配置文件。systemd 借助配置文件 &lt;strong&gt;/etc/systemd/system/default.target&lt;/strong&gt; 决定 Linux 系统应该启动达到哪个状态。&lt;strong&gt;default.target&lt;/strong&gt; 是一个真实文件的符号链接。对于桌面系统，其链接到 &lt;strong&gt;graphical.target&lt;/strong&gt;，该文件相当于老的 systemV init 方式的 &lt;strong&gt;runlevel 5&lt;/strong&gt;。对于一个服务器操作系统来说，&lt;strong&gt;default.target&lt;/strong&gt; 链接到 &lt;strong&gt;multi-user.target&lt;/strong&gt; 相当于 systemV 系统的  &lt;strong&gt;runlevel 3&lt;/strong&gt;。 &lt;strong&gt;emergency.target&lt;/strong&gt; 相当于单用户模式。&lt;/p&gt;
+
+&lt;p&gt;注意，所有的状态点（targets）和服务（services）均为 systemd 的组成单元。&lt;/p&gt;
+
+&lt;p&gt;如下表 1 是 systemd 启动的 targets 和老版 systemV init 启动状态点对比。这个 &lt;strong&gt;systemd target aliases&lt;/strong&gt; （systemd 状态别名）是为了 systemd 向前兼容 systemV 而提供。这个 target 别名允许系统管理员（包括我自己）用 systemV 命令（例如 init 3）改变运行级别。当然，该 systemV 命令也可以转发到 systemd 进行解释和执行。&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th style=&quot;text-align: left&quot;&gt;SystemV 运行级别&lt;/th&gt;
+      &lt;th&gt;systemd target&lt;/th&gt;
+      &lt;th&gt;systemd target 别名&lt;/th&gt;
+      &lt;th&gt;描述&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt; &lt;/td&gt;
+      &lt;td&gt;halt.target&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;在不下电的情况下停止系统.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;0&lt;/td&gt;
+      &lt;td&gt;poweroff.target&lt;/td&gt;
+      &lt;td&gt;runlevel0.target&lt;/td&gt;
+      &lt;td&gt;停止系统运行并切断电源.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;S&lt;/td&gt;
+      &lt;td&gt;emergency.target&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;单用户模式，没有服务进程运行，文件系统也没挂载。这是用于紧急救援模式的一个基本的运行状态，仅仅能够通过在本地运行 shell 与系统进行交互。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;1&lt;/td&gt;
+      &lt;td&gt;rescue.target&lt;/td&gt;
+      &lt;td&gt;runlevel1.target&lt;/td&gt;
+      &lt;td&gt;该状态是一个挂在了文件系统，仅运行了部分基本服务进程的基本系统，并在主控制台启动了一个 shell 访问入口用于诊断。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;2&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;runlevel2.target&lt;/td&gt;
+      &lt;td&gt;多用户，没有挂在 NFS 文件系统，但是所有的非图形界面服务进程已经运行。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;3&lt;/td&gt;
+      &lt;td&gt;multi-user.target&lt;/td&gt;
+      &lt;td&gt;runlevel3.target&lt;/td&gt;
+      &lt;td&gt;所有服务都已运行，只支持命令接口访问.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;4&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;runlevel4.target&lt;/td&gt;
+      &lt;td&gt;暂未使用.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;5&lt;/td&gt;
+      &lt;td&gt;graphical.target&lt;/td&gt;
+      &lt;td&gt;runlevel5.target&lt;/td&gt;
+      &lt;td&gt;多用户，且支持图形界面接口.&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;6&lt;/td&gt;
+      &lt;td&gt;reboot.target&lt;/td&gt;
+      &lt;td&gt;runlevel6.target&lt;/td&gt;
+      &lt;td&gt;重启&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt; &lt;/td&gt;
+      &lt;td&gt;default.target&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;这个状态是对于多用户或图形界面状态的一个代指。systemd 总是通过 default.target 启动系统。default.target 绝不应该代指  halt.target, poweroff.target 或 reboot.target。&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;&lt;em&gt;表 1 systemd 与老版本 systemV的启动状态点比较&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;每个 target 在配置文件中配置一个依赖集，systemd 需要首先启动该 target 所需依赖，指定运行级别的系统依赖于其对应服务进程的运行。当配置文件中所有的依赖服务都加载并运行后，即说明系统处于在运行级别。&lt;/p&gt;
+
+&lt;p&gt;systemd 也会查看 systemV init 遗留的目录中是否存在相关启动文件，若存在，则 systemd 根据这些配置文件的内容启动对应的服务。在 Fedora 系统中，这个过时的网络服务就是通过该方式启动的一个实例。&lt;/p&gt;
+
+&lt;p&gt;如下图 1 是直接从 bootup 的 man 页面拷贝而来。它展示了在一个系统成功启动的过程一般的事件序列和基本的顺序要求。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;sysinit.target&lt;/strong&gt; 和 &lt;strong&gt;basic.target&lt;/strong&gt; 启动过程中的两个状态检查点。尽管 systemd 的设计初衷是并行启动系统服务，但是部分服务进程或功能模块的启动是以其他服务或功能启动为前提的。系统将暂停于检查点直到其所要求的条件都满足为止。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;sysinit.target&lt;/strong&gt; 状态的到达是以其所依赖的所有资源模块都正常启动为前提的。其包括文件系统挂载，交换文件设置，设备管理器的启动，随机数生成器种子设置，低级别系统服务初始化，加解密服务启动（如果一个或者多个文件系统加密，则此项必须启动）等，在 &lt;strong&gt;sysinit.target&lt;/strong&gt; 中这些服务与模块是可以并行启动的。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;sysinit.target&lt;/strong&gt; 启动所有最基本的低级别服务和资源，这些服务和资源都是进行下一阶段  basic.target 工作的必要前提。&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  local-fs-pre.target
+            |
+            v
+   (various mounts and   (various swap   (various cryptsetup
+    fsck services...)     devices...)        devices...)       (various low-level   (various low-level
+            |                  |                  |             services: udevd,     API VFS mounts:
+            v                  v                  v             tmpfiles, random     mqueue, configfs,
+     local-fs.target      swap.target     cryptsetup.target    seed, sysctl, ...)      debugfs, ...)
+            |                  |                  |                    |                    |
+            \__________________|_________________ | ___________________|____________________/
+                                                 \|/
+                                                  v
+                                           sysinit.target
+                                                  |
+             ____________________________________/|\________________________________________
+            /                  |                  |                    |                    \
+            |                  |                  |                    |                    |
+            v                  v                  |                    v                    v
+        (various           (various               |                (various          rescue.service
+       timers...)          paths...)              |               sockets...)               |
+            |                  |                  |                    |                    v
+            v                  v                  |                    v             *rescue.target
+      timers.target      paths.target             |             sockets.target
+            |                  |                  |                    |
+            v                  \_________________ | ___________________/
+                                                 \|/
+                                                  v
+                                            basic.target
+                                                  |
+             ____________________________________/|                                 emergency.service
+            /                  |                  |                                         |
+            |                  |                  |                                         v
+            v                  v                  v                                *emergency.target
+        display-        (various system    (various system
+    manager.service         services           services)
+            |             required for            |
+            |            graphical UIs)           v
+            |                  |          *multi-user.target
+            |                  |                  |
+            \_________________ | _________________/
+                              \|/
+                               v
+                  *graphical.target
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;em&gt;图 1：systemd 的启动流程&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;在 &lt;strong&gt;sysinit.target&lt;/strong&gt; 满足以后，systemd 进入完成 basic.target 状态， 启动 &lt;strong&gt;basic.target&lt;/strong&gt; 要求的所有资源。 basic.target 启动下一状态需要的前置功能或服务，包括可执行目录，通信 sockets，以及定时器等。&lt;/p&gt;
+
+&lt;p&gt;最后，将到达用户状态（&lt;strong&gt;multi-user.target&lt;/strong&gt; 或 &lt;strong&gt;graphical.target&lt;/strong&gt;），应该注意的是 &lt;strong&gt;graphical.target&lt;/strong&gt; 是以 &lt;strong&gt;multi-user.target&lt;/strong&gt; 为基础的。&lt;/p&gt;
+
+&lt;p&gt;图 1 中，以*开头的状态（target）是通用的启动状态。当到达其中的某一状态，则说明系统已经成功启动。如果 &lt;strong&gt;multi-user.target&lt;/strong&gt; 是默认的目标状态，则成功启动的系统将以命令行登录界面呈现于用户。如果 &lt;strong&gt;graphical.target&lt;/strong&gt; 是默认的目标状态，则成功启动的系统将以图形登陆界面呈现于用户，界面的具体样式将根据系统所配置的显示管理器而定。&lt;/p&gt;
+
+&lt;h2 id=&quot;问题讨论&quot;&gt;问题讨论&lt;/h2&gt;
+&lt;p&gt;最近我需要将将一台 Linux 电脑的内核引导方式从旧版 GRUB1 更改为 GRUB2。我发现一些 GRUB2 的命令在我的系统上不能用，也可能是我使用方法不正确。至今，我仍然不知道是何原因导致，此问题需要进一步探究。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;grub2-set-default&lt;/strong&gt; 命令没能在配置文件 &lt;strong&gt;/etc/default/grub&lt;/strong&gt; 中成功设置内核引导索引，以至于期望的内核并没有被引导启动。故在该配置文件中我手动更改 &lt;strong&gt;GRUB_DEFAULT=saved&lt;/strong&gt; 为 &lt;strong&gt;GRUB_DEFAULT=2&lt;/strong&gt;，2 是我需要引导安装的内核文件所在设备的索引。然后我执行命令 &lt;strong&gt;grub2-mkconfig &amp;gt; /boot/grub2/grub.cfg&lt;/strong&gt; 创建了新的 GRUB 配置文件，该方法成功规避了命令行无效的问题，并成功更改了系统引导方式。&lt;/p&gt;
+
+&lt;h2 id=&quot;结论&quot;&gt;结论&lt;/h2&gt;
+&lt;p&gt;GRUB2, systemd 和 init 都是发行版 Linux 引导和启动的关键组件。尽管在实际中， systemd 的使用还存在一些争议，但是 GRUB2 与 systemd 结合的方式能够方便地引导内核并成功启动系统。&lt;/p&gt;
+
+&lt;p&gt;尽管 GRUB2 和 systemd 都比其前任要更加复杂，但是它们更加容易学习和管理。在 man 页面有大量关于 systemd 的帮助说明，freedesktop.org 也在线收录了完整的此帮助说明。下面有更多相关信息链接。&lt;/p&gt;
+
+&lt;h2 id=&quot;附加资源&quot;&gt;附加资源&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/GNU_GRUB&quot;&gt;GNU GRUB&lt;/a&gt; (Wikipedia)&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.gnu.org/software/grub/manual/grub.html&quot;&gt;GNU GRUB Manual&lt;/a&gt; (GNU.org)&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/Master_boot_record&quot;&gt;Master Boot Record&lt;/a&gt; (Wikipedia)&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/Multiboot_Specification&quot;&gt;Multiboot specification&lt;/a&gt; (Wikipedia)&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/Systemd&quot;&gt;systemd&lt;/a&gt; (Wikipedia)&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.freedesktop.org/software/systemd/man/bootup.html&quot;&gt;systemd bootup process&lt;/a&gt; (Freedesktop.org)&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.freedesktop.org/software/systemd/man/index.html&quot;&gt;systemd index of man pages&lt;/a&gt; (Freedesktop.org)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+&lt;p&gt;作者简介：&lt;/p&gt;
+
+&lt;p&gt;David Both 居住在美国北卡罗纳州的首府罗利，是一个 Linux 开源贡献者。他已经从事 IT 行业 40 余年，在 IBM 教授 OS/2 20余年。1981 年，他在 IBM 开发了第一个关于 最初的 IBM 个人电脑的培训课程。他也曾在 Red Hat 教授 RHCE 课程，也曾供职于 MCI worldcom，Cico 以及北卡罗纳州等。他已经为 Linux 开源社区工作进 20 年。&lt;/p&gt;
+
+&lt;hr /&gt;
+&lt;p&gt;原文链接: &lt;a href=&quot;https://opensource.com/article/17/2/linux-boot-and-startup&quot;&gt;https://opensource.com/article/17/2/linux-boot-and-startup&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;作者：&lt;a href=&quot;https://opensource.com/users/dboth&quot;&gt;David Both&lt;/a&gt; 译者：penghuster 校对：校对者ID&lt;/p&gt;
+
+&lt;p&gt;本文由 &lt;a href=&quot;https://github.com/LCTT/TranslateProject&quot;&gt;LCTT&lt;/a&gt; 原创编译，&lt;a href=&quot;https://linux.cn/&quot;&gt;Linux中国&lt;/a&gt; 荣誉推出&lt;/p&gt;</content><author><name>penghuster</name></author><category term="Linux" /><summary type="html">你是否曾经对操作系统为何能够执行应用程序而感到疑惑？那么本文将为你揭开操作系统引导与启动的面纱。 理解操作系统开机引导和启动过程对于配置操作系统和解决相关启动问题是至关重要的。该文章陈述了 GRUB2 引导装载程序开机引导装载内核的过程和 systemd 执行开机启动操作系统的过程。 事实上，操作系统的启动分为两个阶段：引导和启动。引导阶段开始于打开电源开关，结束于内核初始化完成和 systemd 进程成功拉起。启动阶段接管了剩余工作，直到操作系统可用。 总体来说，Linux 的开机引导和启动过程是相当容易理解，下文将分章节对于不同步骤进行详细说明。 其他Linux参考资源 What is Linux? What are Linux containers? Managing devices in Linux Download Now: Linux commands cheat sheet Our latest Linux articles BIOS POST Boot loader (GRUB2) Kernel initialization Start systemd, the parent of all processes. 注意，本文以 GRUB2 和 systemd 为载体讲述操作系统的开机引导和启动过程，是因为两者是目前主流的 linux 发行版本所使用的引导加载内核和初始化系统的软件。当然另外一些过去使用的相关软件仍然在一些 Linux 发行版本中使用。</summary></entry><entry><title type="html">IoT边缘计算框架的新进展</title><link href="http://localhost:4000/2017/08/21/IoT-Framework-for-Edge-Computing-Gains-Ground/" rel="alternate" type="text/html" title="IoT边缘计算框架的新进展" /><published>2017-08-21T08:21:26+08:00</published><updated>2017-08-21T08:21:26+08:00</updated><id>http://localhost:4000/2017/08/21/IoT%20Framework%20for%20Edge%20Computing%20Gains%20Ground</id><content type="html" xml:base="http://localhost:4000/2017/08/21/IoT-Framework-for-Edge-Computing-Gains-Ground/">&lt;ul id=&quot;markdown-toc&quot;&gt;
+  &lt;li&gt;&lt;a href=&quot;#传感器集成的简化&quot; id=&quot;markdown-toc-传感器集成的简化&quot;&gt;传感器集成的简化&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#边缘分析能力的构建&quot; id=&quot;markdown-toc-边缘分析能力的构建&quot;&gt;边缘分析能力的构建&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;文中主要简述了 EdgeX Foundry 的来源和现状，简要描述了 EdgeX Foundry 的功能及其作用。&lt;/p&gt;
+
+&lt;!-- more --&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://i.imgur.com/sZvQOVz.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;开源项目 EdgeX Foundry 旨在开发一个标准化的互操作物联网边缘计算框架.&lt;a href=&quot;https://www.linux.com/licenses/category/used-permission&quot;&gt;使用权限获取&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;在4月, Linux 基金组织&lt;a href=&quot;http://linuxgizmos.com/open-source-group-focuses-on-industrial-iot-gateway-middleware/&quot;&gt;启动&lt;/a&gt;了开发一个标准化互操作物联网边缘计算框架的开源项目&lt;a href=&quot;https://www.edgexfoundry.org/&quot;&gt;EdgeX Foundry&lt;/a&gt;. 就在最近, EdgeX Foundry 又&lt;a href=&quot;https://www.edgexfoundry.org/announcement/2017/07/17/edgex-foundry-builds-momentum-for-a-iot-interoperability-and-a-unified-marketplace-with-eight-new-members/&quot;&gt;宣布&lt;/a&gt;新增 8 个成员,  其总成员达到 58.&lt;/p&gt;
+
+&lt;p&gt;这些新成员是 Absolute, IoT Impact LABS, inwinStack, Parallel Machines, Queen’s University Belfast, RIOT, Toshiba Digital Solutions Corporation, 和 Tulip Interfaces. 其原有成员包括 AMD, Analog Devices, Canonical/Ubuntu, Cloud Foundry, Dell, Linaro, Mocana, NetFoundry, Opto 22, RFMicron 和 VMWare 等其他公司或组织.&lt;/p&gt;
+
+&lt;p&gt;戴尔贡献出其基于 Apache2.0 协议的&lt;a href=&quot;https://medium.com/@gigastacey/dell-plans-an-open-source-iot-stack-3dde43f24feb&quot;&gt;FUSE&lt;/a&gt;框架源码作为 EdgeX Foundry 项目的种子，其中包括十几个微服务和超过 12.5 万行代码. Linux 基金会和 Dell 将合并 FUSE 和 AllJoyn-compliant IoTX 项目, 后者是由现有 EdgeX Foundry 成员 Two Bulls 和 Beechwood 发起的与 FUSE 相似的一个项目. 待合并完成 Linux 基金组织将正式宣布启动 EdgeX Foundry 项目.&lt;/p&gt;
+
+&lt;p&gt;EdgeX Foundry 将创造一个互操作性的, 即插即用的物联网边缘计算组件生态系统. 开源 EdgeX 栈将协调多样的传感器网络与后台数据处理云平台间的消息协议. 该框架旨在充分挖掘横跨边缘计算, 安全, 系统管理和微服务等模块间的通用代码.&lt;/p&gt;
+
+&lt;p&gt;对于项目成员及其客户来说, 其关注焦点在于借助于 IoT 网关和智能边缘设备,预认证的软件可方便集成的可能性. 在 Linux.com 的一次采访中, &lt;a href=&quot;https://iotimpactlabs.com/&quot;&gt;IoT Impact LABS&lt;/a&gt; 的首席工程师, Dan Mahoney 说:”现实中, EdgeX Foundry 降低我们在部署囊括多供应商解决方案时所面对的挑战.”&lt;/p&gt;
+
+&lt;p&gt;Linux 基金组织,在将 AllSeen Alliance 的 AllJoyn 项目合并到 &lt;a href=&quot;https://www.linux.com/news/how-iotivity-and-alljoyn-could-combine&quot;&gt;IoTivity&lt;/a&gt; 的情况下, 为什么Linux基金组织发起了另外一个物联网标准化项目 (EdgeX Foundry)? 原因之一, EdgeX Foundry 不同于 IoTivity, IoTivity 主要解决工业物联网问题, 而 EdgeX Foundry 旨在一站解决消费级和工业级物联网全部的问题. 更具体来说, EdgeX Foundry 旨在成为网关和智能终端的通用中间件. EdgeX Foundry 与 IoTivity 的另一个不同在于, 前者希望借助预连接的终端塑造一种新产品, 后者更多解决现存产品之间的互操作性.&lt;/p&gt;
+
+&lt;p&gt;Linux 基金会 IoT 高级总监 Philip DesAutels 说:”IoTivity 提供实现设备之间无缝连接的协议, 而 EdgeX Foundry 提供了一个边缘计算框架. EdgeX Foundry 能够兼容如 IoTivity, BacNet, EtherCat 等任何协议设备, 从而实现集成多协议通信系统的通用边缘计算框架, 该项目的目标是为构建互操作组件的生态系统的过程中, 降低不确定性, 缩短市场化时间, 更好地产生规模效应.”&lt;/p&gt;
+
+&lt;p&gt;上个月, 由 &lt;a href=&quot;https://openconnectivity.org/developer/specifications/international-standards&quot;&gt;Open Connectivity Foundation&lt;/a&gt; (OCF) 和 Linux 基金组织共同发起的 IoTivity项目发布了 &lt;a href=&quot;https://wiki.iotivity.org/release_note_1.3.0&quot;&gt;IoTivity 1.3&lt;/a&gt;, 该版本增加 了与其曾经的对手 AllJoyn spec 的纽带, 也增加了对于 OCF 的 UPnP 设备的接口. 预计在 &lt;a href=&quot;https://www.linux.com/news/iotivity-20-whats-store&quot;&gt;IoTivity 2.0&lt;/a&gt; 中, IoTivity 和 AllJoyn 将会更进一步深入集成.&lt;/p&gt;
+
+&lt;p&gt;DesAutels 告诉 linux.com, IoTivity 和 EdgeX 是高度互补的, 其原因是 EdgeX 项目和IoTivity 项目有好几个共同成员, 如此更强化了 IoTivity 和 EdgeX 的互补关系.&lt;/p&gt;
+
+&lt;p&gt;尽管 IoTivity 和 EdgeX 都宣称是跨平台,包括 CPU 架构和 OS, 但是二者还是存在一定区别.  IoTivity 最初是基于 Linux 平台设计, 兼容 Ubuntu, Tizen 和 Android 等 Linux 系列 OS, 后来逐步扩展到 Windows 和 IOS 操作系统. 与之对应的 EdgeX 设计之初就是基于跨平台的理念, 其完美兼容于各种 CPU 架构, 以及 Linux, Windows 和 Mac OS 等操作系统. 未来还将兼容于实时操作系统(RTOSes).&lt;/p&gt;
+
+&lt;p&gt;EdgeX 的新成员 &lt;a href=&quot;https://riot-os.org/&quot;&gt;RIOT&lt;/a&gt; 提供了一个开源项目 RIOT RTOS. RIOT 的主要维护者 Thomas Eichinger 在一次重要报告时说:”由于 RIOT 初衷就是致力于解决 linux 不太适应的问题, 故对于 RIOT 社区来说,参加和支持类似于 EdgeX Foundry 等与 Linux 互补性社区的积极性是自然而然的.”&lt;/p&gt;
+
+&lt;h2 id=&quot;传感器集成的简化&quot;&gt;传感器集成的简化&lt;/h2&gt;
+&lt;p&gt;IoT Impact LABS (也叫aka impact LABS 或直接称为 LABS) 是另一个 EdgeX 新成员. 该公司推出了一个独特的业务, 旨在帮助中小企业度过物联网解决方案的试用阶段. 该公司的大部分客户, 其中包括几个 EdgeX Foundry 的项目成员, 是致力于建设智慧城市, 基础设施再利用, 提高食品安全, 以及解决会社面临的自然资源缺乏的挑战.&lt;/p&gt;
+
+&lt;p&gt;Dan Mahoney 说:”在 LABS 我们花费了很多时间来调和试点客户的解决方案之间的差异性. EdgeX Foundry 可以最小化部署边缘软件系统的工作量,从而使我们能够更快更好地部署高质量的解决方案.”&lt;/p&gt;
+
+&lt;p&gt;该框架在涉及多个供应商, 多种类型传感器的场景尤其凸显优势. “Edgex Foundry 将为我们提供快速构建网关的能力, 以及快速部署传感器的能力.” Mahoney 补充说到. 传感器制造商将借助 EdgeX SDK 烧写应用层协议驱动到边缘设备, 该协议能够兼容多供应商和解决方案.&lt;/p&gt;
+
+&lt;h2 id=&quot;边缘分析能力的构建&quot;&gt;边缘分析能力的构建&lt;/h2&gt;
+&lt;p&gt;当我们问到, Mahoney 的公司想要见到 EdgeX Foundry 怎样的发展时, 他说:”我们喜见乐闻的一个目标是有更多有效的工业协议作为设备服务出现, 一个更清晰的边缘计算实现路径.”&lt;/p&gt;
+
+&lt;p&gt;在工业物联网和消费级物联网中边缘计算都呈现增长趋势. 在后者, 我们已经看到如 Alexa 的智能声控以及录像分析等几个智能家居系统集成了边缘计算分析技术. 这减轻了云服务平台的计算负荷, 但同时也带来了安全, 隐私, 以及由于政策和供应商中断引起的服务中断问题.&lt;/p&gt;
+
+&lt;p&gt;对于工业物联网网关, 隐私问题成为首要的问题. 因此, 在物联网网关方面出现了一些类似于云服务功能的扩展. 其中一个解决方案是, 为了安全将一些云服务上的安全保障应用借助容器如 &lt;a href=&quot;https://www.linux.com/news/future-iot-containers-aim-solve-security-crisis&quot;&gt;RIOS 与 Ubuntu 内核快照机制&lt;/a&gt;等方式集成到嵌入式设备. 另一种方案是, 开发 IoT 系统迁移云功能到边缘. 上个月, Amazon 为基于 linux 的网关发布了实现 &lt;a href=&quot;http://linuxgizmos.com/amazon-releases-aws-greengrass-for-local-iot-processing-on-linux-devices/&quot;&gt;AWS Greengrass&lt;/a&gt; 物联网协议栈的 AWS lambda. 该软件能够使计算, 消息路由, 数据收集和同步能力在边缘设备上完成,如物联网网关.&lt;/p&gt;
+
+&lt;p&gt;分析能力是 EdgeX Foundry 的一个关键功能要点. 发起成员 Cloud Foundry 是旨在集成其主要的工业应用平台到边缘设备. 另一个新成员 &lt;a href=&quot;https://www.parallelmachines.com/&quot;&gt;Parallel Machines&lt;/a&gt; 计划利用EdgeX将AI带到边缘设备.&lt;/p&gt;
+
+&lt;p&gt;EdgeX Foundry 仍然在项目早期, 软件仍然在 α 阶段, 其成员在上个月才刚刚进行了第一次全体成员大会. 同时项目已经为新开发者准备了一些初始训练课程, 另外从&lt;a href=&quot;https://wiki.edgexfoundry.org/&quot;&gt;这里&lt;/a&gt;也能获取更多的信息.&lt;/p&gt;
+
+&lt;p&gt;原文连接: &lt;a href=&quot;https://www.linux.com/blog/2017/7/iot-framework-edge-computing-gains-ground&quot;&gt;https://www.linux.com/blog/2017/7/iot-framework-edge-computing-gains-ground&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;作者： &lt;a href=&quot;https://www.linux.com/users/ericstephenbrown&quot;&gt;ERIC BROWN&lt;/a&gt; 译者：penghuster 校对：校对者ID&lt;/p&gt;
+
+&lt;p&gt;本文由 &lt;a href=&quot;https://github.com/LCTT/TranslateProject&quot;&gt;LCTT&lt;/a&gt; 原创编译，&lt;a href=&quot;https://linux.cn/&quot;&gt;Linux中国&lt;/a&gt; 荣誉推出&lt;/p&gt;</content><author><name>penghuster</name></author><category term="IoT" /><summary type="html">文中主要简述了 EdgeX Foundry 的来源和现状，简要描述了 EdgeX Foundry 的功能及其作用。</summary></entry><entry><title type="html">FreeCodeCamp的算法题</title><link href="http://localhost:4000/2017/03/07/Algorithms-from-freecodecamp/" rel="alternate" type="text/html" title="FreeCodeCamp的算法题" /><published>2017-03-07T09:00:00+08:00</published><updated>2017-03-07T09:00:00+08:00</updated><id>http://localhost:4000/2017/03/07/Algorithms-from-freecodecamp</id><content type="html" xml:base="http://localhost:4000/2017/03/07/Algorithms-from-freecodecamp/">&lt;ul id=&quot;markdown-toc&quot;&gt;
+  &lt;li&gt;&lt;a href=&quot;#1-reverse-a-string&quot; id=&quot;markdown-toc-1-reverse-a-string&quot;&gt;1. Reverse a String&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description&quot; id=&quot;markdown-toc-description&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it&quot; id=&quot;markdown-toc-way-to-solve-it&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code&quot; id=&quot;markdown-toc-code&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output&quot; id=&quot;markdown-toc-output&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#2-check-for-palindromes--判断回文&quot; id=&quot;markdown-toc-2-check-for-palindromes--判断回文&quot;&gt;2. Check for Palindromes – 判断回文&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-1&quot; id=&quot;markdown-toc-description-1&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-1&quot; id=&quot;markdown-toc-way-to-solve-it-1&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-1&quot; id=&quot;markdown-toc-code-1&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-1&quot; id=&quot;markdown-toc-output-1&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#3-find-the-longest-word-in-a-string&quot; id=&quot;markdown-toc-3-find-the-longest-word-in-a-string&quot;&gt;3. Find the Longest Word in a String&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-2&quot; id=&quot;markdown-toc-description-2&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-2&quot; id=&quot;markdown-toc-way-to-solve-it-2&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-2&quot; id=&quot;markdown-toc-code-2&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-2&quot; id=&quot;markdown-toc-output-2&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#4-confirm-the-ending&quot; id=&quot;markdown-toc-4-confirm-the-ending&quot;&gt;4. Confirm the Ending&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-3&quot; id=&quot;markdown-toc-description-3&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-3&quot; id=&quot;markdown-toc-way-to-solve-it-3&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-3&quot; id=&quot;markdown-toc-code-3&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-3&quot; id=&quot;markdown-toc-output-3&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#5-falsy-bouncer--假值删除&quot; id=&quot;markdown-toc-5-falsy-bouncer--假值删除&quot;&gt;5. Falsy Bouncer – 假值删除&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-4&quot; id=&quot;markdown-toc-description-4&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-4&quot; id=&quot;markdown-toc-way-to-solve-it-4&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-4&quot; id=&quot;markdown-toc-code-4&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-4&quot; id=&quot;markdown-toc-output-4&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#6-seek-and-destroy--删除选定的值&quot; id=&quot;markdown-toc-6-seek-and-destroy--删除选定的值&quot;&gt;6. Seek and Destroy – 删除选定的值&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-5&quot; id=&quot;markdown-toc-description-5&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-5&quot; id=&quot;markdown-toc-way-to-solve-it-5&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-5&quot; id=&quot;markdown-toc-code-5&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-5&quot; id=&quot;markdown-toc-output-5&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#7-caesars-cipher--凯撒密码&quot; id=&quot;markdown-toc-7-caesars-cipher--凯撒密码&quot;&gt;7. Caesars Cipher – 凯撒密码&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-6&quot; id=&quot;markdown-toc-description-6&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-6&quot; id=&quot;markdown-toc-way-to-solve-it-6&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-6&quot; id=&quot;markdown-toc-code-6&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-6&quot; id=&quot;markdown-toc-output-6&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#8-sum-all-numbers-in-a-range&quot; id=&quot;markdown-toc-8-sum-all-numbers-in-a-range&quot;&gt;8. Sum All Numbers in a Range&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-7&quot; id=&quot;markdown-toc-description-7&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-7&quot; id=&quot;markdown-toc-way-to-solve-it-7&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-7&quot; id=&quot;markdown-toc-code-7&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-7&quot; id=&quot;markdown-toc-output-7&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#9-roman-numeral-converter&quot; id=&quot;markdown-toc-9-roman-numeral-converter&quot;&gt;9. Roman Numeral Converter&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-8&quot; id=&quot;markdown-toc-description-8&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-8&quot; id=&quot;markdown-toc-way-to-solve-it-8&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-8&quot; id=&quot;markdown-toc-code-8&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-8&quot; id=&quot;markdown-toc-output-8&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#10-search-and-replace&quot; id=&quot;markdown-toc-10-search-and-replace&quot;&gt;10. Search and Replace&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-9&quot; id=&quot;markdown-toc-description-9&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-9&quot; id=&quot;markdown-toc-way-to-solve-it-9&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-9&quot; id=&quot;markdown-toc-code-9&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-9&quot; id=&quot;markdown-toc-output-9&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#11-missing-letters&quot; id=&quot;markdown-toc-11-missing-letters&quot;&gt;11. Missing letters&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-10&quot; id=&quot;markdown-toc-description-10&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-10&quot; id=&quot;markdown-toc-way-to-solve-it-10&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-10&quot; id=&quot;markdown-toc-code-10&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-10&quot; id=&quot;markdown-toc-output-10&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#12-convert-html-entities&quot; id=&quot;markdown-toc-12-convert-html-entities&quot;&gt;12. Convert HTML Entities&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-11&quot; id=&quot;markdown-toc-description-11&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-11&quot; id=&quot;markdown-toc-way-to-solve-it-11&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-11&quot; id=&quot;markdown-toc-code-11&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-11&quot; id=&quot;markdown-toc-output-11&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#13-spinal-tap-case&quot; id=&quot;markdown-toc-13-spinal-tap-case&quot;&gt;13. Spinal Tap Case&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-12&quot; id=&quot;markdown-toc-description-12&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-12&quot; id=&quot;markdown-toc-way-to-solve-it-12&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-12&quot; id=&quot;markdown-toc-code-12&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-12&quot; id=&quot;markdown-toc-output-12&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#14-sum-all-primes&quot; id=&quot;markdown-toc-14-sum-all-primes&quot;&gt;14. Sum All Primes&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-13&quot; id=&quot;markdown-toc-description-13&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-13&quot; id=&quot;markdown-toc-way-to-solve-it-13&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-13&quot; id=&quot;markdown-toc-code-13&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-13&quot; id=&quot;markdown-toc-output-13&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#15-smallest-common-multiple&quot; id=&quot;markdown-toc-15-smallest-common-multiple&quot;&gt;15. Smallest Common Multiple&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-14&quot; id=&quot;markdown-toc-description-14&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-14&quot; id=&quot;markdown-toc-way-to-solve-it-14&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-14&quot; id=&quot;markdown-toc-code-14&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-14&quot; id=&quot;markdown-toc-output-14&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#16-binary-agents&quot; id=&quot;markdown-toc-16-binary-agents&quot;&gt;16. Binary Agents&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-15&quot; id=&quot;markdown-toc-description-15&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-15&quot; id=&quot;markdown-toc-way-to-solve-it-15&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-15&quot; id=&quot;markdown-toc-code-15&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-15&quot; id=&quot;markdown-toc-output-15&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#17-everything-be-true&quot; id=&quot;markdown-toc-17-everything-be-true&quot;&gt;17. Everything Be True&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-16&quot; id=&quot;markdown-toc-description-16&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-16&quot; id=&quot;markdown-toc-way-to-solve-it-16&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-16&quot; id=&quot;markdown-toc-code-16&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-16&quot; id=&quot;markdown-toc-output-16&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#18-arguments-optional&quot; id=&quot;markdown-toc-18-arguments-optional&quot;&gt;18. Arguments Optional&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-17&quot; id=&quot;markdown-toc-description-17&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-17&quot; id=&quot;markdown-toc-way-to-solve-it-17&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-17&quot; id=&quot;markdown-toc-code-17&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-17&quot; id=&quot;markdown-toc-output-17&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#19-symmetric-difference&quot; id=&quot;markdown-toc-19-symmetric-difference&quot;&gt;19. Symmetric Difference&lt;/a&gt;    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;#description-18&quot; id=&quot;markdown-toc-description-18&quot;&gt;Description&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#way-to-solve-it-18&quot; id=&quot;markdown-toc-way-to-solve-it-18&quot;&gt;Way to solve it&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#code-18&quot; id=&quot;markdown-toc-code-18&quot;&gt;Code&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;#output-18&quot; id=&quot;markdown-toc-output-18&quot;&gt;Output&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;这里收集&lt;a href=&quot;https://www.freecodecamp.com&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;FreeCodeCamp&lt;/code&gt;&lt;/a&gt;上的所有的&lt;code class=&quot;highlighter-rouge&quot;&gt;Javascript&lt;/code&gt;算法题目，自己的解答以及运行结果和思考。&lt;/p&gt;
+
+&lt;!-- more --&gt;
+
+&lt;h2 id=&quot;1-reverse-a-string&quot;&gt;1. Reverse a String&lt;/h2&gt;
+
+&lt;h4 id=&quot;description&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Reverse the provided string.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;Turn the string into an array before reversing it.&lt;/p&gt;
+
+&lt;h4 id=&quot;code&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;reverseString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;reverse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;reverseString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;hello&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;olleh&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;2-check-for-palindromes--判断回文&quot;&gt;2. Check for Palindromes – 判断回文&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-1&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;A &lt;strong&gt;palindrome&lt;/strong&gt; is a word or sentence that’s spelled the same way both forward and backward, ignoring punctuation(标点), case(大小写), symbols(符号)，and spacing(空格).&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-1&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;删除所有非字母字符，然后将所得字符全都变成大写或小写。删除字符使用&lt;strong&gt;正则表达式&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-1&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;palindrome&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// Good luck!&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;pd&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;[\W&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;/g&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;toLowerCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;pd&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;pd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;reverse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;palindrome&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;eye&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-1&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;true&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;3-find-the-longest-word-in-a-string&quot;&gt;3. Find the Longest Word in a String&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-2&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Return the length of the longest word in the provided sentence.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-2&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;None.&lt;/p&gt;
+
+&lt;h4 id=&quot;code-2&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;findLongestWord&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+   &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;' '&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;sort&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;curr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;curr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;})[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;findLongestWord&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;The quick brown fox jumped over the lazy dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-2&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;6&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;4-confirm-the-ending&quot;&gt;4. Confirm the Ending&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-3&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Check if a string (first argument, &lt;code class=&quot;highlighter-rouge&quot;&gt;str&lt;/code&gt;) ends with the given target string (second argument, &lt;code class=&quot;highlighter-rouge&quot;&gt;target&lt;/code&gt;).&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-3&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;None.&lt;/p&gt;
+
+&lt;h4 id=&quot;code-3&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;confirmEnding&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;target&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;pos&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;target&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;pos&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;pos&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;target&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;confirmEnding&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Bastian&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;n&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-3&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;true&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;5-falsy-bouncer--假值删除&quot;&gt;5. Falsy Bouncer – 假值删除&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-4&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Remove all falsy values from an array.&lt;/p&gt;
+
+&lt;p&gt;Falsy values in JavaScript are &lt;code class=&quot;highlighter-rouge&quot;&gt;false&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;null&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;0&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;&quot;&quot;&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;undefined&lt;/code&gt;, and &lt;code class=&quot;highlighter-rouge&quot;&gt;NaN&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-4&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;None.&lt;/p&gt;
+
+&lt;h4 id=&quot;code-4&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;bouncer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// Don't show a false ID to this bouncer.&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;Boolean&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;bouncer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;7&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ate&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;9&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-4&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;[ 7, ‘ate’, 9 ]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;6-seek-and-destroy--删除选定的值&quot;&gt;6. Seek and Destroy – 删除选定的值&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-5&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;You will be provided with an initial array (the first argument in the destroyer function), followed by one or more arguments. Remove all elements from the initial array that are of the same value as these arguments.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-5&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;None.&lt;/p&gt;
+
+&lt;h4 id=&quot;code-5&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;destroyer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// Remove all the values&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;args&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;Array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;prototype&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;slice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;call&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;splice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;element&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;destroyer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-5&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;[ 1, 1 ]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;7-caesars-cipher--凯撒密码&quot;&gt;7. Caesars Cipher – 凯撒密码&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-6&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;A common modern use is the ROT13 cipher, where the values of the letters are shifted by 13 places. Thus ‘A’ ↔ ‘N’, ‘B’ ↔ ‘O’ and so on&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-6&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;使用ASCII码。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-6&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;rot13&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; 
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;toUpperCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;subStr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;decode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;subStr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;charCodeAt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+  &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;decode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// Takes care of characters that are not in [A-Z] such as ! and ? and decodes [A-Z]&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;decoded&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arg&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;65&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arg&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;90&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;decoded&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arg&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;13&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;91&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;fromCharCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;decoded&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;65&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;decoded&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;65&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;decoded&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;fromCharCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;console&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;rot13&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;SERR PBQR PNZC&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-6&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;FREE CODE CAMP&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;8-sum-all-numbers-in-a-range&quot;&gt;8. Sum All Numbers in a Range&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-7&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;We’ll pass you an array of two numbers. Return the sum of those two numbers and all numbers between them.&lt;/p&gt;
+
+&lt;p&gt;The lowest number will not always come first.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-7&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Math&lt;/code&gt;对象的&lt;code class=&quot;highlighter-rouge&quot;&gt;Min()&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;Max()&lt;/code&gt;方法。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-7&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;sumAll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;maxValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;reduce&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;Math&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;minValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;reduce&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;Math&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;min&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;maxValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;minValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;minValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;sumAll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-7&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;10&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;9-roman-numeral-converter&quot;&gt;9. Roman Numeral Converter&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-8&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Convert the given number into a roman numeral.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-8&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;比较简单的方法，使用一个对照表。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-8&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;convertToRoman&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;lookup&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;M&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;CM&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;900&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;D&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;500&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;CD&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;400&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;C&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;XC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;90&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;L&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;XL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;X&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;IX&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;9&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;V&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;IV&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;I&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;romanStr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;lookup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;lookup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]){&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;romanStr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;lookup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;romanStr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;convertToRoman&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;36&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-8&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;XXXVI&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;10-search-and-replace&quot;&gt;10. Search and Replace&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-9&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Perform a search and replace on the sentence using the arguments provided and return the new sentence.&lt;/p&gt;
+
+&lt;p&gt;First argument is the sentence to perform the search and replace on.Second argument is the word that you will be replacing (before).Third argument is what you will be replacing the second argument with (after).&lt;/p&gt;
+
+&lt;p&gt;NOTE: Preserve the case of the original word when you are replacing it. For example if you mean to replace the word “Book” with the word “dog”, it should be replaced as “Dog”&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-9&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;问题的关键是如果被替换的单词第一个是大写的时候该怎么办。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-9&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;myReplace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;before&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;after&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;before&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;before&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;toUpperCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()){&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;after&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;after&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;toUpperCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;after&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;slice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;after&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;before&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;after&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;myReplace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;A quick brown fox Jumped over the lazy dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Jumped&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;leaped&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-9&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;A quick brown for Leaped over the lazy dog&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;11-missing-letters&quot;&gt;11. Missing letters&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-10&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Find the missing letter in the passed letter range and return it.&lt;/p&gt;
+
+&lt;p&gt;If all letters are present in the range, return undefined.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-10&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;String.prototype.charCodeAt()&lt;/code&gt; 和 &lt;code class=&quot;highlighter-rouge&quot;&gt;String.fromCharCode()&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;code-10&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;fearNotLetter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;++&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;charCodeAt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;charCodeAt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;fromCharCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;charCodeAt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;undefined&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;fearNotLetter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;abce&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-10&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;d&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;12-convert-html-entities&quot;&gt;12. Convert HTML Entities&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-11&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Convert the characters &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;amp;&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;lt;&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;gt;&lt;/code&gt;, “ (double quote), and &lt;code class=&quot;highlighter-rouge&quot;&gt;'&lt;/code&gt;(apostrophe), in a string to their corresponding HTML entities.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-11&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;虽然有提示说使用正则表达式以及&lt;code class=&quot;highlighter-rouge&quot;&gt;String.replace()&lt;/code&gt;，但还是很容易会想到例9的罗马转换问题，使用一个&lt;code class=&quot;highlighter-rouge&quot;&gt;lookup table&lt;/code&gt;。问题的关键是，很多情况下，我们是不是应该将字符串转换成数组来解决问题。另外注意的是，我们利用&lt;code class=&quot;highlighter-rouge&quot;&gt;split('')&lt;/code&gt;将每个字母进行分割，而不是&lt;code class=&quot;highlighter-rouge&quot;&gt;split(' ')&lt;/code&gt;将单词进行分割，因为还有可能有&lt;code class=&quot;highlighter-rouge&quot;&gt;&quot;abc&quot;&lt;/code&gt;这样的输入。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-11&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;convertHTML&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;lookup&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;amp;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;amp;amp;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;gt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;amp;gt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;lt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;amp;lt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'\&quot;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;amp;quot;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'\''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'&amp;amp;apos;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;entity&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;lookup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;entity&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;entity&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;convertHTML&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dolce &amp;amp; Gabbana&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-11&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;Dolce &amp;amp; Gabbana&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;13-spinal-tap-case&quot;&gt;13. Spinal Tap Case&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-12&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Convert a string to spinal case. Spinal case is all-lowercase-words-joined-by-dashes.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-12&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;这个问题看上去挺简单，使用正则表达式，然后&lt;code class=&quot;highlighter-rouge&quot;&gt;String.prototype.replace()&lt;/code&gt;，接着用&lt;code class=&quot;highlighter-rouge&quot;&gt;String.prototype.toLowerCase()&lt;/code&gt;变成大小写。问题在于提供的输入有&lt;code class=&quot;highlighter-rouge&quot;&gt;thisIsSpinalTap&lt;/code&gt;这种形式，就算是分割成字母数组，也不好判断&lt;code class=&quot;highlighter-rouge&quot;&gt;-&lt;/code&gt;该怎么添加。我们观察到，一个单词的末尾是小写字母，而开头是大写的。我们是不是可以用正则表达式匹配。其实这里只是因为输入的例子是这样的，但实际上可能并不是这样。所有有很大的局限性。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-12&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;spinalCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;regExp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sr&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;[\W&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;/gi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;a-z&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;])([&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;A-Z&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;])&lt;/span&gt;&lt;span class=&quot;sr&quot;&gt;/g&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;$1 $2&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;toLowerCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;regExp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;spinalCase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;AllThe-small Things&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-12&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;all-the-small things&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;14-sum-all-primes&quot;&gt;14. Sum All Primes&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-13&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Sum all the prime numbers up to and including the provided number.&lt;/p&gt;
+
+&lt;p&gt;A prime number is defined as a number greater than one and having only two divisors, one and itself. For example, 2 is a prime number because it’s only divisible by one and two.&lt;/p&gt;
+
+&lt;p&gt;The provided number may not be a prime.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-13&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;素数是什么：除了&lt;code class=&quot;highlighter-rouge&quot;&gt;1&lt;/code&gt;和其本身，无法被其他数整除。特别的，&lt;code class=&quot;highlighter-rouge&quot;&gt;1&lt;/code&gt;不是素数，&lt;code class=&quot;highlighter-rouge&quot;&gt;2&lt;/code&gt;是素数。&lt;/p&gt;
+
+&lt;p&gt;这里的重点是如何取得小于或等于&lt;code class=&quot;highlighter-rouge&quot;&gt;num&lt;/code&gt;的所有素数，对数组元素进行加法运算可以使用迭代遍历，但我觉得最好的方法还是&lt;code class=&quot;highlighter-rouge&quot;&gt;array.prototype.reduce()&lt;/code&gt;函数，会箭头函数那就更好了。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-13&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;sumPrimes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;j&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[];&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;j&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;j&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;j&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;j&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+          &lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;j&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;reduce&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+                 &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+                 &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;//return arr.reduce((a,b)=&amp;gt; a+b,0);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;sumPrimes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;977&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-13&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;73156&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;15-smallest-common-multiple&quot;&gt;15. Smallest Common Multiple&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-14&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Find the smallest common multiple of the provided parameters that can be evenly divided by both, as well as by all sequential numbers in the range between these parameters.&lt;/p&gt;
+
+&lt;p&gt;The range will be an array of two numbers that will not necessarily be in numerical order.&lt;/p&gt;
+
+&lt;p&gt;e.g. for 1 and 3 - find the smallest common multiple of both 1 and 3 that is evenly divisible by all numbers between 1 and 3.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-14&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;要求得给出两数范围内所有的数的最小公倍数，我们可以先求出每两个的公倍数，采用循环就好。问题在于如何求得两数的最小公倍数。经过分析，我们知道两数的最小公倍数&lt;code class=&quot;highlighter-rouge&quot;&gt;[a,b]= |a*b|/(a,b)&lt;/code&gt;，所以问题转化成求两数的最大公约数，如何求最大公约数，有多种算法，这里采用辗转相除法。代码段发布在&lt;a href=&quot;https://gist.github.com/maoxiaoke/5f1d6e0cfe89666888a822c4af9215bb&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Github gist&lt;/code&gt;&lt;/a&gt;上。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-14&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;smallestCommons&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;minValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;maxValue&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;?&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]:&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;mul&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;minValue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;minValue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;maxValue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;mul&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;smalltestCommonsMultiple&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;mul&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;mul&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;smalltestCommonsMultiple&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;greatestCommonsDivisor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;greatestCommonsDivisor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//递归&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;greatestCommonsDivisor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;//非递归&lt;/span&gt;
+  &lt;span class=&quot;cm&quot;&gt;/*  var r = 0;
+  if (r)
+  do {
+    r = a%b; a = b; b=r;
+  }while(r !== 0);
+  return a;*/&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+
+&lt;span class=&quot;nx&quot;&gt;smallestCommons&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-14&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;60&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;16-binary-agents&quot;&gt;16. Binary Agents&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-15&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Return an English translated sentence of the passed binary string.&lt;/p&gt;
+
+&lt;p&gt;The binary string will be space separated.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-15&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;这题的难度之一就在于将二进制转化为十进制，才可以使用&lt;code class=&quot;highlighter-rouge&quot;&gt;String.fromCharCode()&lt;/code&gt;函数，庆幸的是，进制转换在&lt;code class=&quot;highlighter-rouge&quot;&gt;JavaScript&lt;/code&gt;中非常方便，十进制转其他进制，使用&lt;code class=&quot;highlighter-rouge&quot;&gt;x.toString(a)&lt;/code&gt;，&lt;code class=&quot;highlighter-rouge&quot;&gt;x&lt;/code&gt;表示一个十进制数，&lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt;表示进制。其他进制转十进制，使用&lt;code class=&quot;highlighter-rouge&quot;&gt;parseInt(x,a)&lt;/code&gt;，&lt;code class=&quot;highlighter-rouge&quot;&gt;x&lt;/code&gt;表示进制字符串，&lt;code class=&quot;highlighter-rouge&quot;&gt;a&lt;/code&gt;表示字符串的进制。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-15&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;binaryAgent&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;' '&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;tr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;tr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;fromCharCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;parseInt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;tr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;binaryAgent&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;01000001 01110010 01100101 01101110 00100111 01110100 00100000 01100010 01101111 01101110 01100110 01101001 01110010 01100101 01110011 00100000 01100110 01110101 01101110 00100001 00111111&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-15&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;Aren’t bonfires fun!?&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;17-everything-be-true&quot;&gt;17. Everything Be True&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-16&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Check if the predicate (second argument) is truthy on all elements of a collection (first argument).&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-16&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;第一个参数是一个对象数组，第二个参数是一个字符串，表示第一个数组中对象的属性，如果前一个参数中没有该属性，或者该属性的值为&lt;code class=&quot;highlighter-rouge&quot;&gt;0&lt;/code&gt;、&lt;code class=&quot;highlighter-rouge&quot;&gt;null&lt;/code&gt;、&lt;code class=&quot;highlighter-rouge&quot;&gt;''&lt;/code&gt;一类的也判断为&lt;code class=&quot;highlighter-rouge&quot;&gt;false&lt;/code&gt;。那么第一种情况，对象没有该属性的情况，我们联想到一个&lt;a href=&quot;/2017/03/22/Objects&quot;&gt;对象的属性探测&lt;/a&gt;，可以使用&lt;code class=&quot;highlighter-rouge&quot;&gt;in&lt;/code&gt;操作符或者&lt;code class=&quot;highlighter-rouge&quot;&gt;hasOwnProperty()&lt;/code&gt;方法。对于第二种情况，刚开始我以为是假值，但发现并不是。后来一想，这些值进行强制类型转换，不都是&lt;code class=&quot;highlighter-rouge&quot;&gt;false&lt;/code&gt;吗。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-16&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;truthCheck&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;collection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;pre&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// Is everyone being true?&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;collection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;collection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;hasOwnProperty&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;pre&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;collection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;pre&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+      &lt;span class=&quot;c1&quot;&gt;//or if(!(pre in collection[i]) || !collection[i][pre])&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;truthCheck&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;user&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Tinky-Winky&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;sex&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;male&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;user&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Dipsy&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;sex&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;male&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;user&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Laa-Laa&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;sex&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;female&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;user&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Po&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;sex&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;female&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}],&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;sex&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;cm&quot;&gt;/*
+truthCheck([{&quot;user&quot;: &quot;Tinky-Winky&quot;, &quot;sex&quot;: &quot;male&quot;, &quot;age&quot;: 0}, {&quot;user&quot;: &quot;Dipsy&quot;, &quot;sex&quot;: &quot;male&quot;, &quot;age&quot;: 3}, {&quot;user&quot;: &quot;Laa-Laa&quot;, &quot;sex&quot;: &quot;female&quot;, &quot;age&quot;: 5}, {&quot;user&quot;: &quot;Po&quot;, &quot;sex&quot;: &quot;female&quot;, &quot;age&quot;: 4}], &quot;age&quot;)
+*/&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-16&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;true&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;18-arguments-optional&quot;&gt;18. Arguments Optional&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-17&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Create a function that sums two arguments together. If only one argument is provided, then return a function that expects one argument and returns the sum.&lt;/p&gt;
+
+&lt;p&gt;For example, addTogether(2, 3) should return 5, and addTogether(2) should return a function.&lt;/p&gt;
+
+&lt;p&gt;Calling this returned function with a single argument will then return the sum:&lt;/p&gt;
+
+&lt;p&gt;var sumTwoAnd = addTogether(2);&lt;/p&gt;
+
+&lt;p&gt;sumTwoAnd(3) returns 5.&lt;/p&gt;
+
+&lt;p&gt;If either argument isn’t a valid number, return undefined.&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-17&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;对于闭包，以下是一个很好的例子&lt;/p&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;nx&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;//5&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;对于传递了多少个参数，我们可以用&lt;code class=&quot;highlighter-rouge&quot;&gt;arguments&lt;/code&gt;对象来解决。&lt;/p&gt;
+
+&lt;h4 id=&quot;code-17&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;addTogether&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;typeof&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'number'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;typeof&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'number'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;undefined&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;===&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;typeof&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'number'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;undefined&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;sumTwoAnd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;typeof&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!==&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'number'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;){&lt;/span&gt;
+           &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;undefined&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+           &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;addTogether&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)([&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-17&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;undefined&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;19-symmetric-difference&quot;&gt;19. Symmetric Difference&lt;/h2&gt;
+
+&lt;h4 id=&quot;description-18&quot;&gt;Description&lt;/h4&gt;
+
+&lt;p&gt;Create a function that takes two or more arrays and returns an array of the symmetric difference (△ or ⊕) of the provided arrays.&lt;/p&gt;
+
+&lt;p&gt;Given two sets (for example set A = {1, 2, 3} and set B = {2, 3, 4}), the mathematical term “symmetric difference” of two sets is the set of elements which are in either of the two sets, but not in both (A △ B = C = {1, 4}). For every additional symmetric difference you take (say on a set D = {2, 3}), you should get the set with elements which are in either of the two the sets but not both (C △ D = {1, 4} △ {2, 3} = {1, 2, 3, 4}).&lt;/p&gt;
+
+&lt;h4 id=&quot;way-to-solve-it-18&quot;&gt;Way to solve it&lt;/h4&gt;
+
+&lt;p&gt;这里的问题是，是不知传入多少参数。这个我们可以使用&lt;code class=&quot;highlighter-rouge&quot;&gt;arguments&lt;/code&gt;参数。因为考虑到是两个两个数组处理，如果我们想使用得是&lt;code class=&quot;highlighter-rouge&quot;&gt;Array.prototype.reduce()&lt;/code&gt;方法。&lt;/p&gt;
+
+&lt;p&gt;其次，我们要判断数组&lt;code class=&quot;highlighter-rouge&quot;&gt;A&lt;/code&gt;的每项元素是否存在&lt;code class=&quot;highlighter-rouge&quot;&gt;B&lt;/code&gt;当中，反之也是如此。所以我们可以使用&lt;code class=&quot;highlighter-rouge&quot;&gt;forEach()&lt;/code&gt;遍历，使用&lt;code class=&quot;highlighter-rouge&quot;&gt;indexOf()&lt;/code&gt;判断某元素是否是数组中，如果不存在，返回&lt;code class=&quot;highlighter-rouge&quot;&gt;-1&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;in&lt;/code&gt;操作符可以替代&lt;code class=&quot;highlighter-rouge&quot;&gt;indexOf()&lt;/code&gt;的操作吗？&lt;/p&gt;
+
+&lt;h4 id=&quot;code-18&quot;&gt;Code&lt;/h4&gt;
+
+&lt;div class=&quot;language-javascript highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;sym&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;args&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[];&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nx&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;symDiff&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arrayOne&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;arrayTwo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[];&lt;/span&gt;
+
+        &lt;span class=&quot;nx&quot;&gt;arrayOne&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;forEach&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arrayTwo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;nx&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+
+        &lt;span class=&quot;nx&quot;&gt;arrayTwo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;forEach&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;arrayOne&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;indexOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;nx&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;});&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;sort&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;reduce&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;symDiff&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;sym&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;h4 id=&quot;output-18&quot;&gt;Output&lt;/h4&gt;
+
+&lt;p&gt;[1,4,5]&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;编辑备注：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;2017-03-07第一次编辑&lt;/li&gt;
+  &lt;li&gt;2017-03-28第二次编辑&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>penghuster</name></author><category term="Algorithms" /><summary type="html">这里收集FreeCodeCamp上的所有的Javascript算法题目，自己的解答以及运行结果和思考。</summary></entry></feed>
