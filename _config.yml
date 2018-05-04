@@ -30,3 +30,5 @@ FB:
     provider : disqus
     disqus :
     short_name : penghuster
+
+theme: jekyll-theme-slate
